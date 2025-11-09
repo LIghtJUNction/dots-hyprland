@@ -332,7 +332,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                     spacing: 10
                     StatusItem {
                         icon: Ai.chatMetadata.icon ?? ""
-                        statusText: Ai.chatMetadata.title
+                        statusText: Ai.chatMetadata.title ?? ""
                         description: statusText
                         visible: Ai.chatMetadata?.title?.length > 1
                         maxWidth: statusRowLayout.width / 2
@@ -359,6 +359,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                         icon: "token"
                         statusText: Ai.tokenCount.total
                         description: Translation.tr("Total token count\nInput: %1\nOutput: %2").arg(Ai.tokenCount.input).arg(Ai.tokenCount.output)
+                        maxWidth: statusRowLayout.width / 3
                     }
                 }
             }
@@ -420,44 +421,34 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 shape: MaterialShape.Shape.PixelCircle
             }
 
-            ColumnLayout {
-                Layout.fillWidth: true
-                visible: Ai.messageIDs.length === 0
-                anchors {
-                    left: parent.left
-                    leftMargin: 50
-                    top: placeholder.verticalCenter
-                    topMargin: 100
-                }
-                Rectangle {
-                    implicitWidth: 50
-                    implicitHeight: 50
-                    color: "blue"
-                }
-                StyledListView {
-                    id: listView
-                    Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 300 // FIXME
-                    implicitHeight: 200 // FIXME
-
-                    model: Ai.savedChats
-                    delegate: AiChatHistoryButton {}
-                }
-                Rectangle {
-                    implicitWidth: 50
-                    implicitHeight: 50
-                    color: "blue"
-                }
-                /* RippleButtonWithIcon {
-                    Layout.fillWidth: true
-                    buttonRadius: Appearance.rounding.small
-                    materialIcon
-                } */
-            }
+            
 
             ScrollToBottomButton {
                 z: 3
                 target: messageListView
+            }
+            Item {
+                anchors {
+                    bottom: parent.bottom
+                    horizontalCenter: parent.horizontalCenter
+                    bottomMargin: 10
+                }
+                id: chatHistoryItem
+                visible: Ai.messageIDs.length === 0
+                implicitWidth: parent.width
+                implicitHeight: 100 // FIX MEEE
+                Layout.bottomMargin: implicitHeight > 0 ? root.padding : -root.padding * 10
+                Behavior on implicitHeight {
+                    animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
+                }
+                StyledListView {
+                    id: listView
+                    implicitWidth: parent.implicitWidth
+                    implicitHeight: parent.implicitHeight
+                    //verticalLayoutDirection: ListView.BottomToTop
+                    model: Ai.savedChats
+                    delegate: AiChatHistoryButton {}
+                }
             }
         }
 
@@ -522,6 +513,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
             }
         }
 
+
         Rectangle { // Input area
             id: inputWrapper
             property real spacing: 5
@@ -572,116 +564,115 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                         color: activeFocus ? Appearance.m3colors.m3onSurface : Appearance.m3colors.m3onSurfaceVariant
                         placeholderText: Translation.tr('Message the model... "%1" for commands').arg(root.commandPrefix)
 
-                        background: null
-
-                        onTextChanged: {
-                            // Handle suggestions
-                            if (messageInputField.text.length === 0) {
-                                root.suggestionQuery = "";
-                                root.suggestionList = [];
-                                return;
-                            } else if (messageInputField.text.startsWith(`${root.commandPrefix}model`)) {
-                                root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
-                                const modelResults = Fuzzy.go(root.suggestionQuery, Ai.modelList.map(model => {
-                                    return {
-                                        name: Fuzzy.prepare(model),
-                                        obj: model
-                                    };
-                                }), {
-                                    all: true,
-                                    key: "name"
-                                });
-                                root.suggestionList = modelResults.map(model => {
-                                    return {
-                                        name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "model ") : ""}${model.target}`,
-                                        displayName: `${Ai.models[model.target].name}`,
-                                        description: `${Ai.models[model.target].description}`
-                                    };
-                                });
-                            } else if (messageInputField.text.startsWith(`${root.commandPrefix}prompt`)) {
-                                root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
-                                const promptFileResults = Fuzzy.go(root.suggestionQuery, Ai.promptFiles.map(file => {
-                                    return {
-                                        name: Fuzzy.prepare(file),
-                                        obj: file
-                                    };
-                                }), {
-                                    all: true,
-                                    key: "name"
-                                });
-                                root.suggestionList = promptFileResults.map(file => {
-                                    return {
-                                        name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "prompt ") : ""}${file.target}`,
-                                        displayName: `${FileUtils.trimFileExt(FileUtils.fileNameForPath(file.target))}`,
-                                        description: Translation.tr("Load prompt from %1").arg(file.target)
-                                    };
-                                });
-                            } else if (messageInputField.text.startsWith(`${root.commandPrefix}save`)) {
-                                root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
-                                const promptFileResults = Fuzzy.go(root.suggestionQuery, Ai.savedChats.map(file => {
-                                    return {
-                                        name: Fuzzy.prepare(file),
-                                        obj: file
-                                    };
-                                }), {
-                                    all: true,
-                                    key: "name"
-                                });
-                                root.suggestionList = promptFileResults.map(file => {
-                                    const chatName = FileUtils.trimFileExt(FileUtils.fileNameForPath(file.target)).trim();
-                                    return {
-                                        name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "save ") : ""}${chatName}`,
-                                        displayName: `${chatName}`,
-                                        description: Translation.tr("Save chat to %1").arg(chatName)
-                                    };
-                                });
-                            } else if (messageInputField.text.startsWith(`${root.commandPrefix}load`)) {
-                                root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
-                                const promptFileResults = Fuzzy.go(root.suggestionQuery, Ai.savedChats.map(file => {
-                                    return {
-                                        name: Fuzzy.prepare(file),
-                                        obj: file
-                                    };
-                                }), {
-                                    all: true,
-                                    key: "name"
-                                });
-                                root.suggestionList = promptFileResults.map(file => {
-                                    const chatName = FileUtils.trimFileExt(FileUtils.fileNameForPath(file.target)).trim();
-                                    return {
-                                        name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "load ") : ""}${chatName}`,
-                                        displayName: `${chatName}`,
-                                        description: Translation.tr(`Load chat from %1`).arg(file.target)
-                                    };
-                                });
-                            } else if (messageInputField.text.startsWith(`${root.commandPrefix}tool`)) {
-                                root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
-                                const toolResults = Fuzzy.go(root.suggestionQuery, Ai.availableTools.map(tool => {
-                                    return {
-                                        name: Fuzzy.prepare(tool),
-                                        obj: tool
-                                    };
-                                }), {
-                                    all: true,
-                                    key: "name"
-                                });
-                                root.suggestionList = toolResults.map(tool => {
-                                    const toolName = tool.target;
-                                    return {
-                                        name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "tool ") : ""}${tool.target}`,
-                                        displayName: toolName,
-                                        description: Ai.toolDescriptions[toolName]
-                                    };
-                                });
-                            } else if (messageInputField.text.startsWith(root.commandPrefix)) {
-                                root.suggestionQuery = messageInputField.text;
-                                root.suggestionList = root.allCommands.filter(cmd => cmd.name.startsWith(messageInputField.text.substring(1))).map(cmd => {
-                                    return {
-                                        name: `${root.commandPrefix}${cmd.name}`,
-                                        description: `${cmd.description}`
-                                    };
-                                });
-                            }
+                    onTextChanged: {
+                        if (messageInputField.text.length !== 0) chatHistoryItem.implicitHeight = 0;
+                        else chatHistoryItem.implicitHeight = inputWrapper.implicitHeight * 2;
+                        // Handle suggestions
+                        if (messageInputField.text.length === 0) {
+                            root.suggestionQuery = "";
+                            root.suggestionList = [];
+                            return;
+                        } else if (messageInputField.text.startsWith(`${root.commandPrefix}model`)) {
+                            root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
+                            const modelResults = Fuzzy.go(root.suggestionQuery, Ai.modelList.map(model => {
+                                return {
+                                    name: Fuzzy.prepare(model),
+                                    obj: model
+                                };
+                            }), {
+                                all: true,
+                                key: "name"
+                            });
+                            root.suggestionList = modelResults.map(model => {
+                                return {
+                                    name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "model ") : ""}${model.target}`,
+                                    displayName: `${Ai.models[model.target].name}`,
+                                    description: `${Ai.models[model.target].description}`
+                                };
+                            });
+                        } else if (messageInputField.text.startsWith(`${root.commandPrefix}prompt`)) {
+                            root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
+                            const promptFileResults = Fuzzy.go(root.suggestionQuery, Ai.promptFiles.map(file => {
+                                return {
+                                    name: Fuzzy.prepare(file),
+                                    obj: file
+                                };
+                            }), {
+                                all: true,
+                                key: "name"
+                            });
+                            root.suggestionList = promptFileResults.map(file => {
+                                return {
+                                    name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "prompt ") : ""}${file.target}`,
+                                    displayName: `${FileUtils.trimFileExt(FileUtils.fileNameForPath(file.target))}`,
+                                    description: Translation.tr("Load prompt from %1").arg(file.target)
+                                };
+                            });
+                        } else if (messageInputField.text.startsWith(`${root.commandPrefix}save`)) {
+                            root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
+                            const promptFileResults = Fuzzy.go(root.suggestionQuery, Ai.savedChats.map(file => {
+                                return {
+                                    name: Fuzzy.prepare(file),
+                                    obj: file
+                                };
+                            }), {
+                                all: true,
+                                key: "name"
+                            });
+                            root.suggestionList = promptFileResults.map(file => {
+                                const chatName = FileUtils.trimFileExt(FileUtils.fileNameForPath(file.target)).trim();
+                                return {
+                                    name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "save ") : ""}${chatName}`,
+                                    displayName: `${chatName}`,
+                                    description: Translation.tr("Save chat to %1").arg(chatName)
+                                };
+                            });
+                        } else if (messageInputField.text.startsWith(`${root.commandPrefix}load`)) {
+                            root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
+                            const promptFileResults = Fuzzy.go(root.suggestionQuery, Ai.savedChats.map(file => {
+                                return {
+                                    name: Fuzzy.prepare(file),
+                                    obj: file
+                                };
+                            }), {
+                                all: true,
+                                key: "name"
+                            });
+                            root.suggestionList = promptFileResults.map(file => {
+                                const chatName = FileUtils.trimFileExt(FileUtils.fileNameForPath(file.target)).trim();
+                                return {
+                                    name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "load ") : ""}${chatName}`,
+                                    displayName: `${chatName}`,
+                                    description: Translation.tr(`Load chat from %1`).arg(file.target)
+                                };
+                            });
+                        } else if (messageInputField.text.startsWith(`${root.commandPrefix}tool`)) {
+                            root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
+                            const toolResults = Fuzzy.go(root.suggestionQuery, Ai.availableTools.map(tool => {
+                                return {
+                                    name: Fuzzy.prepare(tool),
+                                    obj: tool
+                                };
+                            }), {
+                                all: true,
+                                key: "name"
+                            });
+                            root.suggestionList = toolResults.map(tool => {
+                                const toolName = tool.target;
+                                return {
+                                    name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "tool ") : ""}${tool.target}`,
+                                    displayName: toolName,
+                                    description: Ai.toolDescriptions[toolName]
+                                };
+                            });
+                        } else if (messageInputField.text.startsWith(root.commandPrefix)) {
+                            root.suggestionQuery = messageInputField.text;
+                            root.suggestionList = root.allCommands.filter(cmd => cmd.name.startsWith(messageInputField.text.substring(1))).map(cmd => {
+                                return {
+                                    name: `${root.commandPrefix}${cmd.name}`,
+                                    description: `${cmd.description}`
+                                };
+                            });
                         }
 
                         function accept() {
@@ -850,6 +841,10 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
     component AiChatHistoryButton: Item {
         id: chatHistoryItem
         property var metadata
+        
+        onMetadataChanged: {
+            
+        }
 
         implicitHeight: savedChatButton.implicitHeight
         implicitWidth: listView.implicitWidth
@@ -864,14 +859,14 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 const fullJson = JSON.parse(metadataReader.text());
                 chatHistoryItem.metadata = fullJson.metadata;
                 savedChatButton.materialIcon = chatHistoryItem.metadata.icon ?? "history";
-                savedChatButton.mainText = chatHistoryItem.metadata.title ?? "Last Session";
+                savedChatButton.mainText = chatHistoryItem.metadata.title === "lastSession" ? Translation.tr("Last session") : chatHistoryItem.metadata.title ?? "Unknown chat";
             }
         }
 
         RowLayout {
             implicitWidth: listView.implicitWidth
             RippleButtonWithIcon {
-                implicitWidth: listView.implicitWidth
+                implicitWidth: listView.implicitWidth - chatDeleteButton.implicitWidth * 1.2
                 id: savedChatButton
                 onClicked: {
                     Ai.loadChat(chatHistoryItem.metadata.title);
