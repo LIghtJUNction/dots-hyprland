@@ -241,23 +241,29 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
         property string icon
         property string statusText
         property string description
+        property int maxWidth: materialIcon.width
         hoverEnabled: true
         implicitHeight: statusItemRowLayout.implicitHeight
         implicitWidth: statusItemRowLayout.implicitWidth
 
+
         RowLayout {
             id: statusItemRowLayout
-            spacing: 0
+            spacing: statusText.length > 1 ? 5 : 0
+
             MaterialSymbol {
+                id: materialIcon
                 text: statusItem.icon
                 iconSize: Appearance.font.pixelSize.huge
                 color: Appearance.colors.colSubtext
+                Layout.preferredWidth: width
             }
             StyledText {
                 font.pixelSize: Appearance.font.pixelSize.small
                 text: statusItem.statusText
                 color: Appearance.colors.colSubtext
-                animateChange: true
+                elide: Text.ElideRight
+                Layout.preferredWidth: text.length > 1 ? Math.min(implicitWidth , maxWidth) : 0
             }
         }
 
@@ -316,15 +322,24 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 implicitWidth: statusRowLayout.implicitWidth + 10 * 2
                 implicitHeight: Math.max(statusRowLayout.implicitHeight, 38)
                 radius: Appearance.rounding.normal - root.padding
-                color: messageListView.atYBeginning ? Appearance.colors.colLayer2 : Appearance.colors.colLayer2Base
-                Behavior on color {
-                    animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                color: Appearance.colors.colLayer2
+                Behavior on implicitWidth {
+                    animation: Appearance.animation.elementResize.numberAnimation.createObject(this)
                 }
                 RowLayout {
                     id: statusRowLayout
                     anchors.centerIn: parent
                     spacing: 10
-
+                    StatusItem {
+                        icon: Ai.chatMetadata.icon ?? ""
+                        statusText: Ai.chatMetadata.title
+                        description: statusText
+                        visible: Ai.chatMetadata?.title?.length > 1
+                        maxWidth: statusRowLayout.width / 2
+                    }
+                    StatusSeparator {
+                        visible: Ai.chatMetadata?.title?.length > 1
+                    }
                     StatusItem {
                         icon: Ai.currentModelHasApiKey ? "key" : "key_off"
                         statusText: ""
@@ -406,6 +421,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
             }
 
             ColumnLayout {
+                Layout.fillWidth: true
                 visible: Ai.messageIDs.length === 0
                 anchors {
                     left: parent.left
@@ -421,19 +437,11 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 StyledListView {
                     id: listView
                     Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 50
-                    implicitHeight: 100 // FIXME
+                    implicitWidth: 300 // FIXME
+                    implicitHeight: 200 // FIXME
 
-                    model: Ai.savedChatsMeta
-                    delegate: RippleButtonWithIcon {
-                        Component.onCompleted: {
-                            console.log(Ai.savedChatsMeta)
-                        }
-                        Layout.alignment: Qt.AlignHCenter
-                        materialIcon: modelData.icon
-                        mainText: modelData.title
-                        Layout.fillWidth: true
-                    }
+                    model: Ai.savedChats
+                    delegate: AiChatHistoryButton {}
                 }
                 Rectangle {
                     implicitWidth: 50
@@ -829,6 +837,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                                 }
                                 if (modelData.name === "clear") {
                                     messageInputField.text = "";
+                                    Ai.updateSavedChats()
                                 }
                             }
                         }
@@ -836,5 +845,59 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 }
             }
         }
+    }
+
+    component AiChatHistoryButton: Item {
+        id: chatHistoryItem
+        property var metadata
+
+        implicitHeight: savedChatButton.implicitHeight
+        implicitWidth: listView.implicitWidth
+
+        Component.onCompleted: metadataReader.reload();
+
+        FileView {
+            id: metadataReader
+            path: modelData
+            onLoadedChanged: {
+                if (!metadataReader.loaded) return;
+                const fullJson = JSON.parse(metadataReader.text());
+                chatHistoryItem.metadata = fullJson.metadata;
+                savedChatButton.materialIcon = chatHistoryItem.metadata.icon ?? "history";
+                savedChatButton.mainText = chatHistoryItem.metadata.title ?? "Last Session";
+            }
+        }
+
+        RowLayout {
+            implicitWidth: listView.implicitWidth
+            RippleButtonWithIcon {
+                implicitWidth: listView.implicitWidth
+                id: savedChatButton
+                onClicked: {
+                    Ai.loadChat(chatHistoryItem.metadata.title);
+                }
+            }
+            RippleButton {
+                id: chatDeleteButton
+                property bool confirmState: false
+                colBackground: confirmState ? Appearance.colors.colError : Appearance.colors.colLayer2
+                implicitWidth: implicitHeight
+                MaterialSymbol {
+                    text: "delete"
+                    fill: 1
+                    anchors.centerIn: parent
+                }
+                onClicked: {
+                    if (confirmState) {
+                        Quickshell.execDetached(["rm", "-rf", chatHistoryItem.metadata.path]);
+                        Ai.updateSavedChats();
+                    }else {
+                        confirmState = true
+                    }
+                    
+                }
+            }
+        }
+        
     }
 }
