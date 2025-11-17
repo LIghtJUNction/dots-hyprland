@@ -57,7 +57,7 @@ Singleton {
         property int total: -1
     }
 
-    property bool waitingForResponse: false
+    property bool waitingForResponse: false // for save indicator
 
     function idForMessage(message) {
         // Generate a unique ID using timestamp and random value
@@ -598,7 +598,7 @@ Singleton {
                 root.postResponseHook = null; // Reset hook after use
             }
             if (Config.options.ai.autoSave) {
-                if ((root.currentChatMetadata === undefined || JSON.stringify(root.currentChatMetadata) === '{}') && root.messageIDs.length > 6) root.autoNameAndSave();
+                if ((root.currentChatMetadata === undefined || JSON.stringify(root.currentChatMetadata) === '{}') && root.messageIDs.length > Config.options.ai.autoSaveResponses * 2) root.autoNameAndSave();
             }
 
             if (root.currentChatMetadata != undefined && JSON.stringify(root.currentChatMetadata) !== '{}') root.saveCurrentChat();
@@ -926,7 +926,6 @@ Singleton {
     }
 
     function autoNameAndSave() {
-        // console.log("[AI] Auto naming and saving the chat..")
         autoNameGeminiProc.chatContent = JSON.stringify(root.chatToJson());
         autoNameGeminiProc.running = true; 
     }
@@ -956,7 +955,7 @@ Singleton {
             const messages = saveData.messages;
             root.clearMessages();
             
-            root.messageIDs = messages.map((_, i) => i);    ////// Auto name chat and save it //////
+            root.messageIDs = messages.map((_, i) => i);
 
             for (let i = 0; i < messages.length; i++) {
                 const message = messages[i];
@@ -987,7 +986,7 @@ Singleton {
     }
 
     Process { 
-        id: autoNameGeminiProc // FIX ME: rename
+        id: autoNameGeminiProc
         running: false
         property var chatContent
         property string base64Chat: Qt.btoa(chatContent)
