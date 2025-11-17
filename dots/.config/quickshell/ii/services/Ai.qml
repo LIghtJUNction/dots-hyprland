@@ -57,6 +57,8 @@ Singleton {
         property int total: -1
     }
 
+    property bool waitingForResponse: false
+
     function idForMessage(message) {
         // Generate a unique ID using timestamp and random value
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
@@ -72,8 +74,6 @@ Singleton {
     property list<var> savedChats: []
     property var currentChatMetadata: {}  // current chat metadata
     
-
-
 
     property var promptSubstitutions: {
         "{DISTRO}": SystemInfo.distroName,
@@ -591,16 +591,23 @@ Singleton {
         property ApiStrategy currentStrategy
 
         function markDone() {
+            root.waitingForResponse = false;
             requester.message.done = true;
             if (root.postResponseHook) {
                 root.postResponseHook();
                 root.postResponseHook = null; // Reset hook after use
             }
-            root.saveCurrentChat()
-            root.responseFinished()
+            if (Config.options.ai.autoSave) {
+                if ((root.currentChatMetadata === undefined || JSON.stringify(root.currentChatMetadata) === '{}') && root.messageIDs.length > 6) root.autoNameAndSave();
+            }
+
+            if (root.currentChatMetadata != undefined && JSON.stringify(root.currentChatMetadata) !== '{}') root.saveCurrentChat();
+
+            root.responseFinished();
         }
 
         function makeRequest() {
+            root.waitingForResponse = true
             const model = models[currentModelId];
 
             // Fetch API keys if needed
@@ -883,24 +890,26 @@ Singleton {
      */
     function saveChat(chatName, extraMetadata = {}) {
         root.addMessage(Translation.tr("Saving the chat as '%1'").arg(chatName), root.interfaceRole);
-        chatSaveFile.chatName = chatName
+        chatSaveFile.chatName = chatName;
 
         const defaultMetadata = {
-            savedAt: DateTime.date + DateTime.time,
+            savedAt: DateTime.date + " | " + DateTime.time,
             messageCount: root.messageIDs.length,
             path: chatSaveFile.path,
             title: chatSaveFile.chatName
-        }
+        };
 
-        var metadata = Object.assign({}, defaultMetadata, extraMetadata);
+        var metadata = Object.assign({}, defaultMetadata, extraMetadata); 
 
         const saveContent = JSON.stringify({
             metadata: metadata,
             messages: root.chatToJson()
         }, null, 2); // 2 for pretty look
 
-        chatSaveFile.setText(saveContent)
-        updateSavedChats()
+        chatSaveFile.setText(saveContent);
+        updateSavedChats();
+
+        root.currentChatMetadata = metadata;
     }
 
     function saveCurrentChat() {
@@ -917,13 +926,14 @@ Singleton {
     }
 
     function autoNameAndSave() {
-        getNameGeminiProc.chatContent = JSON.stringify(root.chatToJson())
-        getNameGeminiProc.running = true; 
+        // console.log("[AI] Auto naming and saving the chat..")
+        autoNameGeminiProc.chatContent = JSON.stringify(root.chatToJson());
+        autoNameGeminiProc.running = true; 
     }
 
     function updateSavedChats() {
-        getSavedChats.running = true
-        root.currentChatMetadata = {} 
+        getSavedChats.running = true;
+        root.currentChatMetadata = {}; 
     }
 
     /*
@@ -946,7 +956,7 @@ Singleton {
             const messages = saveData.messages;
             root.clearMessages();
             
-            root.messageIDs = messages.map((_, i) => i);
+            root.messageIDs = messages.map((_, i) => i);    ////// Auto name chat and save it //////
 
             for (let i = 0; i < messages.length; i++) {
                 const message = messages[i];
@@ -976,9 +986,8 @@ Singleton {
         }
     }
 
-    ////// Auto name chat and save it //////
     Process { 
-        id: getNameGeminiProc // FIX ME: rename
+        id: autoNameGeminiProc // FIX ME: rename
         running: false
         property var chatContent
         property string base64Chat: Qt.btoa(chatContent)
