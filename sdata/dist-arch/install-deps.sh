@@ -72,6 +72,18 @@ install-local-pkgbuild() {
   x pushd $location
 
   source ./PKGBUILD
+
+  # Check if package is already installed
+  if pacman -Qi "${pkgname}" &>/dev/null; then
+    local installed_ver=$(pacman -Q "${pkgname}" | awk '{print $2}')
+    local target_ver="${pkgver}-${pkgrel}"
+    if [[ "${installed_ver}" == "${target_ver}" ]]; then
+      echo -e "${STY_GREEN}Package ${pkgname} ${target_ver} is already installed. Skipping.${STY_RST}"
+      x popd
+      return
+    fi
+  fi
+
   x yay -S --sudoloop $installflags --asdeps "${depends[@]}"
   # man makepkg:
   # -A, --ignorearch: Ignore a missing or incomplete arch field in the build script.
