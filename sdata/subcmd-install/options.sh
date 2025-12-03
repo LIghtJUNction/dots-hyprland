@@ -92,7 +92,7 @@ while true ; do
     --core) SKIP_PLASMAINTG=true;SKIP_FISH=true;SKIP_FONTCONFIG=true;SKIP_MISCCONF=true;shift;;
     --exp-files) EXPERIMENTAL_FILES_SCRIPT=true;shift;;
     --via-nix) INSTALL_VIA_NIX=true;shift;;
-    --dev) INSTALL_DEV=true;EXPERIMENTAL_FILES_SCRIPT=true;shift;;
+    --dev) INSTALL_DEV=true;shift;;
 
     ## Ones with parameter
     --fontset)
