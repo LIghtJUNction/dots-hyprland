@@ -110,7 +110,10 @@ Variants {
                 id: wallpaperSizeOutputCollector
                 onStreamFinished: {
                     const output = wallpaperSizeOutputCollector.text;
+                    if (!output) return;
                     const [width, height] = output.split(" ").map(Number);
+                    if (!width || !height) return;
+
                     const [screenWidth, screenHeight] = [bgRoot.screen.width, bgRoot.screen.height];
                     bgRoot.wallpaperWidth = width;
                     bgRoot.wallpaperHeight = height;
@@ -134,20 +137,13 @@ Variants {
                 opacity: (status === Image.Ready && !bgRoot.wallpaperIsVideo) ? 1 : 0
                 cache: false
                 smooth: false
-
-                property int workspaceIndex: (bgRoot.monitor.activeWorkspace?.id ?? 1) - 1
-                property real middleFraction: 0.5
-                property real fraction: {
-                    // 0 - start of the picture
-                    // 1 - end of the picture
-                    if (bgRoot.totalWorkspaces <= 1) {
-                        return middleFraction;
-                    }
-                    return Math.max(0, Math.min(1, workspaceIndex / (bgRoot.totalWorkspaces - 1)));
-                }
-
-                property real usedFractionX: {
-                    let usedFraction = middleFraction;
+                // Range = groups that workspaces span on
+                property int chunkSize: Config?.options?.bar?.workspaces?.shown || 10
+                property int lower: Math.floor(bgRoot.firstWorkspaceId / chunkSize) * chunkSize
+                property int upper: Math.ceil(bgRoot.lastWorkspaceId / chunkSize) * chunkSize
+                property int range: upper - lower
+                property real valueX: {
+                    let result = 0.5;
                     if (Config.options.background.parallax.enableWorkspace && !bgRoot.verticalParallax) {
                         usedFraction = fraction;
                     }

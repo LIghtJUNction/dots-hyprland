@@ -26,12 +26,6 @@ Item {
     Layout.topMargin: Appearance.sizes.hyprlandGapsOut
     implicitWidth: listView.implicitWidth
 
-    function popupCenterXForButton(button) {
-        if (!button || !root.QsWindow)
-            return 0;
-        return root.QsWindow.mapFromItem(button, button.width / 2, 0).x;
-    }
-
     StyledListView {
         id: listView
         spacing: 2
@@ -72,13 +66,16 @@ Item {
         Connections {
             target: root
             function onLastHoveredButtonChanged() {
-                if (root.lastHoveredButton && root.QsWindow)
-                    previewPopup.cachedCenterX = root.popupCenterXForButton(root.lastHoveredButton);
+                previewPopup.allPreviewsReady = false; // Reset readiness when the hovered button changes
             }
-            function onButtonHoveredChanged() {
-                if (root.buttonHovered && root.lastHoveredButton && root.QsWindow)
-                    previewPopup.cachedCenterX = root.popupCenterXForButton(root.lastHoveredButton);
-                updateTimer.restart();
+        }
+        function updatePreviewReadiness() {
+            for(var i = 0; i < previewRowLayout.children.length; i++) {
+                const view = previewRowLayout.children[i];
+                if (view.hasContent === false) {
+                    allPreviewsReady = false;
+                    return;
+                }
             }
         }
 
@@ -112,8 +109,11 @@ Item {
             implicitWidth: popupBackground.implicitWidth + Appearance.sizes.elevationMargin * 2
             implicitHeight: root.maxWindowPreviewHeight + root.windowControlsHeight + Appearance.sizes.elevationMargin * 2
             hoverEnabled: true
-            x: previewPopup.cachedCenterX - width / 2
-
+            x: {
+                if (!root.QsWindow || !root.lastHoveredButton || !root.lastHoveredButton.QsWindow) return 0;
+                const itemCenter = root.QsWindow.mapFromItem(root.lastHoveredButton, root.lastHoveredButton.width / 2, 0);
+                return itemCenter.x - width / 2
+            }
             StyledRectangularShadow {
                 target: popupBackground
                 opacity: previewPopup.show ? 1 : 0
