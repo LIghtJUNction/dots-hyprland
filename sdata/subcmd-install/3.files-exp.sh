@@ -15,6 +15,7 @@
 # TODO: Implement bool key symlink (both read-write and read-only), when the value of `symlink` is true, then instead using `rsync` or `cp`, use `ln`.
 # TODO: add --exp-file-reset-symlink  Try to remove all symlink in .config and .local, which point to the local repo
 # TODO: Update help and doc about `--exp-files` and the yaml config, including the possible values of mode.
+
 #
 # Stage 3 todos:
 # TODO: Implement user-define yaml with merging (override) ability for user who only wants little customization and is satisfied with most of the defaults. User can use `./install-files.yaml` as custom config. When `./install-files.yaml` exists and have correct major version number, merge it together with `sdata/step/3.install-files.yaml` to generate a `cache/install-files.final.yaml` to determine how to copy files. About how to merge two yaml files, I know some software such as rime input method and docker supports a override yaml config, which we may reference from. See also https://github.com/mikefarah/yq/discussions/1437
@@ -22,6 +23,55 @@
 
 # Configuration file
 CONFIG_FILE="sdata/subcmd-install/3.files-exp.yaml"
+
+# Notify if dev mode is enabled
+if [[ "${INSTALL_DEV}" == "true" ]]; then
+  printf "${STY_YELLOW}--dev: Creating symlinks (ln -sfn) instead of copying files for quick updates.\n${STY_RST}"
+fi
+
+# Helper: Create symlink to repo in dev mode, honoring backup modes
+exp_create_symlink(){
+  local from="$1"
+  local to="$2"
+  local mode="${3:-none}"
+  local src="$(realpath -se "${REPO_ROOT}/${from}")"
+
+  # Ensure parent directory exists
+  v mkdir -p "$(dirname "$to")"
+
+  # If destination exists, handle backup depending on mode
+  if [[ -e "$to" ]]; then
+    case "$mode" in
+      hard)
+        if files_are_same "$src" "$to"; then
+          echo "Files are identical, skipping backup"
+        else
+          backup_number=$(get_next_backup_number "$to")
+          v mv "$to" "$to.old.$backup_number"
+        fi
+        ;;
+      soft)
+        if files_are_same "$src" "$to"; then
+          echo "Files are identical, skipping backup"
+        else
+          v ln -sfn "$src" "$to.new"
+          return 0
+        fi
+        ;;
+      *)
+        # No backup: we'll replace destination
+        ;;
+    esac
+  fi
+
+  # Replace target with symlink to source
+  v rm -rf "$to"
+  v ln -sfn "$src" "$to"
+
+  # Record where we've installed
+  x mkdir -p "$(dirname ${INSTALLED_LISTFILE})" || true
+  realpath -se "$to" >> "${INSTALLED_LISTFILE}"
+}
 
 # =============================================================================
 wizard_update_preferences() {
@@ -166,7 +216,8 @@ for pattern in "${patterns[@]}"; do
   from=$(echo "$pattern" | yq '.from' - | envsubst)
   to=$(echo "$pattern" | yq '.to' - | envsubst)
   mode=$(echo "$pattern" | yq '.mode' - | envsubst)
-  condition=$(echo "$pattern" | yq '.condition // "true"')
+  condition=$(echo "$pattern" | yq '.condition // "true"' - | envsubst)
+  force_copy=$(echo "$pattern" | yq '.force_copy // "false"' - | envsubst)
 
   # Handle fontconfig fontset override
   # If FONTSET_DIR_NAME is set and this is the fontconfig pattern, use the fontset instead
@@ -214,6 +265,48 @@ for pattern in "${patterns[@]}"; do
   fi
 
   # Execute based on mode
+  # If dev mode is enabled, override copy behavior and symlink to repo sources
+  # UNLESS force_copy is set to true
+  if [[ "${INSTALL_DEV}" == "true" ]] && [[ "$force_copy" != "true" ]]; then
+    case "$mode" in
+      "sync"|"soft"|"hard")
+        if [[ -d "$from" ]]; then
+          warning_overwrite
+        fi
+        exp_create_symlink "$from" "$to"
+        continue
+        ;;
+      "hard-backup")
+        exp_create_symlink "$from" "$to" "hard"
+        continue
+        ;;
+      "soft-backup")
+        exp_create_symlink "$from" "$to" "soft"
+        continue
+        ;;
+      "skip")
+        echo "Skipping $from"
+        continue
+        ;;
+      "skip-if-exists")
+        if [[ -e "$to" ]]; then
+          echo "Skipping $from (destination exists)"
+        else
+          exp_create_symlink "$from" "$to"
+        fi
+        continue
+        ;;
+      *)
+        echo "Unknown mode: $mode"
+        continue
+        ;;
+    esac
+  fi
+
+  if [[ "${INSTALL_DEV}" == "true" ]] && [[ "$force_copy" == "true" ]]; then
+     echo -e "${STY_BLUE}[DEV] Force copying '$from' instead of symlinking.${STY_RST}"
+  fi
+
   case "$mode" in
     "sync")
       if [[ -d "$from" ]]; then
@@ -239,7 +332,7 @@ for pattern in "${patterns[@]}"; do
       ;;
     "hard-backup")
       if [[ -e "$to" ]]; then
-        if files_are_same "$from" "$to"; then
+        if files_are_same "${REPO_ROOT}/$from" "$to"; then
           echo "Files are identical, skipping backup"
         else
           backup_number=$(get_next_backup_number "$to")
@@ -252,7 +345,7 @@ for pattern in "${patterns[@]}"; do
       ;;
     "soft-backup")
       if [[ -e "$to" ]]; then
-        if files_are_same "$from" "$to"; then
+        if files_are_same "${REPO_ROOT}/$from" "$to"; then
           echo "Files are identical, skipping backup"
         else
           v cp -r "$from" "$to.new"
