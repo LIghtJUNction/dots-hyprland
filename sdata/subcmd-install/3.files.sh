@@ -123,6 +123,29 @@ rsync_dir__sync(){
     rsync -a --delete --out-format='%i %n' "$1"/ "$2"/ | awk -v d="$dest" '$1 ~ /^>/{ sub(/^[^ ]+ /,""); printf d "/" $0 "\n" }' >> "${INSTALLED_LISTFILE}"
   fi
 }
+rsync_dir__sync_exclude(){
+  # NOTE: This function is only for using in other functions
+  # $1: source
+  # $2: target
+  # $3: exclude pattern
+  if [[ "${INSTALL_DEV}" == "true" ]] && ! should_force_copy "$1"; then
+    # Dev mode: symlink the whole directory for easy live updates
+    x mkdir -p "$(dirname $2)"
+    local src="$(realpath -se "${REPO_ROOT}/$1")"
+    x rm -rf "$2"
+    x ln -sfn "$src" "$2"
+    x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
+    realpath -se "$2" >> "${INSTALLED_LISTFILE}"
+  else
+    if [[ "${INSTALL_DEV}" == "true" ]]; then
+      echo -e "${STY_BLUE}[DEV] Force copying dir '$1' instead of symlinking.${STY_RST}"
+    fi
+    x mkdir -p "$2"
+    local dest="$(realpath -se $2)"
+    x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
+    rsync -a --delete --exclude "$3" --out-format='%i %n' "$1"/ "$2"/ | awk -v d="$dest" '$1 ~ /^>/{ sub(/^[^ ]+ /,""); printf d "/" $0 "\n" }' >> "${INSTALLED_LISTFILE}"
+  fi
+}
 function install_file(){
   # NOTE: Do not add prefix `v` or `x` when using this function
   local s=$1
