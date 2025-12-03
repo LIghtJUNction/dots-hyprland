@@ -18,7 +18,11 @@ remove_deprecated_dependencies(){
   list+=(illogical-impulse-{microtex,pymyc-aur})
   list+=(hyprland-qtutils)
   list+=({quickshell,hyprutils,hyprpicker,hyprlang,hypridle,hyprland-qt-support,hyprland-qtutils,hyprlock,xdg-desktop-portal-hyprland,hyprcursor,hyprwayland-scanner,hyprland}-git)
-  for i in ${list[@]};do try sudo pacman --noconfirm -Rdd $i;done
+  for i in ${list[@]}; do
+    if pacman -Qi $i &>/dev/null; then
+      try sudo pacman --noconfirm -Rdd $i
+    fi
+  done
 }
 # NOTE: `implicitize_old_dependencies()` was for the old days when we just switch from dependencies.conf to local PKGBUILDs.
 # However, let's just keep it as references for other distros writing their `sdata/dist-<OS_GROUP_ID>/install-deps.sh`, if they need it.
