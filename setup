@@ -10,6 +10,23 @@ source ./sdata/lib/dist-determine.sh
 prevent_sudo_or_root
 set -e
 
+init_sudo() {
+    if ! sudo -v; then
+        echo "Sudo access is required for installation."
+        exit 1
+    fi
+
+    # Keep sudo alive
+    (
+        set +e
+        while true; do
+            sudo -n true >/dev/null 2>&1
+            kill -0 "$$" >/dev/null 2>&1 || exit 0
+            sleep 60
+        done
+    ) &
+}
+
 #####################################################################################
 showhelp_global(){
 printf "${STY_CYAN}NOTE:
@@ -71,10 +88,7 @@ case ${SUBCMD_NAME} in
       $function
     done
     pause
-    # Initialize sudo keepalive for the entire install process
-    sudo_init_keepalive
-    # Set trap to cleanup when this subcommand exits
-    trap sudo_stop_keepalive EXIT INT TERM
+    init_sudo
     if [[ "${SKIP_ALLGREETING}" != true ]]; then
       source ${SUBCMD_DIR}/0.greeting.sh
     fi
@@ -93,10 +107,7 @@ case ${SUBCMD_NAME} in
       $function
     done
     pause
-    # Initialize sudo keepalive for dependency installation
-    sudo_init_keepalive
-    # Set trap to cleanup when this subcommand exits
-    trap sudo_stop_keepalive EXIT INT TERM
+    init_sudo
     if [[ "${SKIP_ALLDEPS}" != true ]]; then
       source ${SUBCMD_DIR}/1.deps-router.sh
     fi
@@ -106,10 +117,7 @@ case ${SUBCMD_NAME} in
       $function
     done
     pause
-    # Initialize sudo keepalive for setup steps
-    sudo_init_keepalive
-    # Set trap to cleanup when this subcommand exits
-    trap sudo_stop_keepalive EXIT INT TERM
+    init_sudo
     if [[ "${SKIP_ALLSETUPS}" != true ]]; then
       source ${SUBCMD_DIR}/2.setups.sh
     fi
@@ -119,6 +127,7 @@ case ${SUBCMD_NAME} in
       $function
     done
     pause
+    init_sudo
     if [[ "${SKIP_ALLFILES}" != true ]]; then
       source ${SUBCMD_DIR}/3.files.sh
     fi
