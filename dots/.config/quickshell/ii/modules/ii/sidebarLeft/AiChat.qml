@@ -104,7 +104,7 @@ Item {
                 if (joinedArgs.trim().length == 0) {
                     Ai.addMessage(Translation.tr("Chat is being saved with auto naming."), Ai.interfaceRole);
                     Ai.autoNameAndSave();
-                    
+
                     return;
                 }
                 Ai.saveChat(joinedArgs);
@@ -333,8 +333,8 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                     spacing: 10
                     StatusItem {
                         // Chat title indicator
-                        icon: Ai.currentChatMetadata.icon ?? ""
-                        statusText: Ai.currentChatMetadata.title ?? ""
+                        icon: Ai.currentChatMetadata?.icon ?? ""
+                        statusText: Ai.currentChatMetadata?.title ?? ""
                         description: statusText
                         visible: Ai.currentChatMetadata?.title?.length > 1
                         maxWidth: 100
