@@ -92,7 +92,7 @@ Singleton {
     function stringifyList(list) {
         return JSON.stringify(list.map((notif) => notifToJSON(notif)), null, 2);
     }
-    
+
     onListChanged: {
         // Update latest time for each app
         root.list.forEach((notif) => {
@@ -147,41 +147,44 @@ Singleton {
     signal discardAll();
     signal timeout(id: var);
 
-	NotificationServer {
-        id: notifServer
-        // actionIconsSupported: true
-        actionsSupported: true
-        bodyHyperlinksSupported: true
-        bodyImagesSupported: true
-        bodyMarkupSupported: true
-        bodySupported: true
-        imageSupported: true
-        keepOnReload: false
-        persistenceSupported: true
+    Loader {
+        id: notifServerLoader
+        active: Config.options.notifications.enable ?? true
+        sourceComponent: NotificationServer {
+            // actionIconsSupported: true
+            actionsSupported: true
+            bodyHyperlinksSupported: true
+            bodyImagesSupported: true
+            bodyMarkupSupported: true
+            bodySupported: true
+            imageSupported: true
+            keepOnReload: false
+            persistenceSupported: true
 
-        onNotification: (notification) => {
-            notification.tracked = true
-            const newNotifObject = notifComponent.createObject(root, {
-                "notificationId": notification.id + root.idOffset,
-                "notification": notification,
-                "time": Date.now(),
-            });
-			root.list = [...root.list, newNotifObject];
+            onNotification: (notification) => {
+                notification.tracked = true
+                const newNotifObject = notifComponent.createObject(root, {
+                    "notificationId": notification.id + root.idOffset,
+                    "notification": notification,
+                    "time": Date.now(),
+                });
+                root.list = [...root.list, newNotifObject];
 
-            // Popup
-            if (!root.popupInhibited) {
-                newNotifObject.popup = true;
-                if (notification.expireTimeout != 0) {
-                    newNotifObject.timer = notifTimerComponent.createObject(root, {
-                        "notificationId": newNotifObject.notificationId,
-                        "interval": notification.expireTimeout < 0 ? (Config?.options.notifications.timeout ?? 7000) : notification.expireTimeout,
-                    });
+                // Popup
+                if (!root.popupInhibited) {
+                    newNotifObject.popup = true;
+                    if (notification.expireTimeout != 0) {
+                        newNotifObject.timer = notifTimerComponent.createObject(root, {
+                            "notificationId": newNotifObject.notificationId,
+                            "interval": notification.expireTimeout < 0 ? (Config?.options.notifications.timeout ?? 7000) : notification.expireTimeout,
+                        });
+                    }
+                    root.unread++;
                 }
-                root.unread++;
+                root.notify(newNotifObject);
+                // console.log(notifToString(newNotifObject));
+                notifFileView.setText(stringifyList(root.list));
             }
-            root.notify(newNotifObject);
-            // console.log(notifToString(newNotifObject));
-            notifFileView.setText(stringifyList(root.list));
         }
     }
 
@@ -192,14 +195,14 @@ Singleton {
     function discardNotification(id) {
         console.log("[Notifications] Discarding notification with ID: " + id);
         const index = root.list.findIndex((notif) => notif.notificationId === id);
-        const notifServerIndex = notifServer.trackedNotifications.values.findIndex((notif) => notif.id + root.idOffset === id);
+        const notifServerIndex = notifServerLoader.item ? notifServerLoader.item.trackedNotifications.values.findIndex((notif) => notif.id + root.idOffset === id) : -1;
         if (index !== -1) {
             root.list.splice(index, 1);
             notifFileView.setText(stringifyList(root.list));
             triggerListChange()
         }
         if (notifServerIndex !== -1) {
-            notifServer.trackedNotifications.values[notifServerIndex].dismiss()
+            notifServerLoader.item.trackedNotifications.values[notifServerIndex].dismiss()
         }
         root.discard(id); // Emit signal
     }
@@ -208,9 +211,11 @@ Singleton {
         root.list = []
         triggerListChange()
         notifFileView.setText(stringifyList(root.list));
-        notifServer.trackedNotifications.values.forEach((notif) => {
-            notif.dismiss()
-        })
+        if (notifServerLoader.item) {
+            notifServerLoader.item.trackedNotifications.values.forEach((notif) => {
+                notif.dismiss()
+            })
+        }
         root.discardAll();
     }
 
@@ -238,14 +243,14 @@ Singleton {
 
     function attemptInvokeAction(id, notifIdentifier) {
         console.log("[Notifications] Attempting to invoke action with identifier: " + notifIdentifier + " for notification ID: " + id);
-        const notifServerIndex = notifServer.trackedNotifications.values.findIndex((notif) => notif.id + root.idOffset === id);
+        const notifServerIndex = notifServerLoader.item ? notifServerLoader.item.trackedNotifications.values.findIndex((notif) => notif.id + root.idOffset === id) : -1;
         console.log("Notification server index: " + notifServerIndex);
         if (notifServerIndex !== -1) {
-            const notifServerNotif = notifServer.trackedNotifications.values[notifServerIndex];
+            const notifServerNotif = notifServerLoader.item.trackedNotifications.values[notifServerIndex];
             const action = notifServerNotif.actions.find((action) => action.identifier === notifIdentifier);
             // console.log("Action found: " + JSON.stringify(action));
             action.invoke()
-        } 
+        }
         else {
             console.log("Notification not found in server: " + id)
         }
