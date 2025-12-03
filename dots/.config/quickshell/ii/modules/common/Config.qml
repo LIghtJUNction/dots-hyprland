@@ -314,7 +314,7 @@ Singleton {
             }
 
             property JsonObject conflictKiller: JsonObject {
-                property bool autoKillNotificationDaemons: false
+                property bool autoKillNotificationDaemons: true
                 property bool autoKillTrays: false
             }
 
@@ -409,7 +409,7 @@ Singleton {
             }
 
             property JsonObject polkit: JsonObject {
-                property bool enable: true
+                property bool enable: false
             }
 
             property JsonObject overlay: JsonObject {
