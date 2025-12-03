@@ -282,7 +282,7 @@ Item {
 
                 // List
                 ListView {
-                    Layout.fillWidth: true; Layout.fillHeight: true; clip: true; model: root.availableIndexLanguages; spacing: 5
+                    Layout.fillWidth: true; Layout.fillHeight: true; clip: true; model: root.availableIndexLanguages || []; spacing: 5
                     delegate: Rectangle {
                         width: parent.width; height: 45;
                         color: Appearance.colors.colLayer1; // Item background color (consistent with containers)
@@ -300,7 +300,7 @@ Item {
                         }
                     }
                     // Empty State Message
-                    Text { visible: root.availableIndexLanguages.length === 0; text: Translation.tr("No indexes found."); color: Appearance.colors.colSubtext; anchors.centerIn: parent; font.pixelSize: Appearance.font.pixelSize.medium }
+                    Text { visible: (!root.availableIndexLanguages || root.availableIndexLanguages.length === 0); text: Translation.tr("No indexes found."); color: Appearance.colors.colSubtext; anchors.centerIn: parent; font.pixelSize: Appearance.font.pixelSize.medium }
                 }
 
                 // Close Button (Standard Button Design)
