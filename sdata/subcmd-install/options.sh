@@ -1,5 +1,8 @@
 # Handle args for subcmd: install
 # shellcheck shell=bash
+
+# When in development mode, do not copy files, create symlinks instead.
+INSTALL_DEV=false
 showhelp(){
 printf "Syntax: $0 install [OPTIONS]...
 
@@ -27,6 +30,7 @@ Options for install:
       --core                Alias of --skip-{plasmaintg,fish,miscconf,fontconfig}
       --fontset <set>       Use a set of pre-defined font and config (currently only fontconfig).
                             Possible values of <set>: $(ls -A ${REPO_ROOT}/dots-extra/fontsets)
+      --dev                 Use development mode: create symlinks (ln -sf) instead of copying files. Useful for live updates during development.
 ${STY_CYAN}
 New features (experimental):
       --exp-files             Use yaml-based config for the third step copying files.
@@ -46,7 +50,7 @@ cleancache(){
 # `man getopt` to see more
 para=$(getopt \
   -o hfFk:cs \
-  -l help,force,firstrun,fontset:,clean,skip-allgreeting,skip-alldeps,skip-allsetups,skip-allfiles,ignore-outdate,skip-sysupdate,skip-plasmaintg,skip-backup,skip-quickshell,skip-fish,skip-hyprland,skip-fontconfig,skip-miscconf,core,exp-files,via-nix \
+  -l help,force,firstrun,fontset:,clean,skip-allgreeting,skip-alldeps,skip-allsetups,skip-allfiles,ignore-outdate,skip-sysupdate,skip-plasmaintg,skip-backup,skip-quickshell,skip-fish,skip-hyprland,skip-fontconfig,skip-miscconf,core,exp-files,via-nix,dev \
   -n "$0" -- "$@")
 [ $? != 0 ] && echo "$0: Error when getopt, please recheck parameters." && exit 1
 #####################################################################################
@@ -88,7 +92,8 @@ while true ; do
     --core) SKIP_PLASMAINTG=true;SKIP_FISH=true;SKIP_FONTCONFIG=true;SKIP_MISCCONF=true;shift;;
     --exp-files) EXPERIMENTAL_FILES_SCRIPT=true;shift;;
     --via-nix) INSTALL_VIA_NIX=true;shift;;
-    
+    --dev) INSTALL_DEV=true;shift;;
+
     ## Ones with parameter
     --fontset)
     if [[ -d "${REPO_ROOT}/dots-extra/fontsets/$2" ]];
