@@ -15,6 +15,8 @@ ColumnLayout {
     spacing: 6
 
     property bool isVertical: Config.options.background.widgets.clock.digital.vertical
+    property color textColor: Appearance.colors.colOnSurface
+    property int textAlignment: Text.AlignHCenter
 
     Item {
         Layout.fillWidth: true
@@ -23,6 +25,8 @@ ColumnLayout {
 
         ClockText {
             id: timeTextTop
+            color: clockColumn.textColor
+            horizontalAlignment: clockColumn.textAlignment
             text: clockColumn.isVertical ? DateTime.time.substring(0, 2) : DateTime.time
             anchors {
                 top: parent.top
@@ -38,6 +42,8 @@ ColumnLayout {
         }
         ClockText {
             id: timeTextBottom
+            color: clockColumn.textColor
+            horizontalAlignment: clockColumn.textAlignment
             text: clockColumn.isVertical ? DateTime.time.substring(3, 5) : ""
             visible: clockColumn.isVertical
 
@@ -54,19 +60,20 @@ ColumnLayout {
             }
         }
     }
-    
+
     ClockText {
+        color: clockColumn.textColor
+        horizontalAlignment: clockColumn.textAlignment
         visible: Config.options.background.widgets.clock.digital.showDate
         Layout.topMargin: clockColumn.isVertical ? -10 : 0
         text: DateTime.longDate
     }
     ClockText {
+        color: clockColumn.textColor
+        horizontalAlignment: clockColumn.textAlignment
         visible: Config.options.background.widgets.clock.quote.enable && Config.options.background.widgets.clock.quote.text.length > 0
         font.pixelSize: Appearance.font.pixelSize.normal
         text: Config.options.background.widgets.clock.quote.text
         animateChange: false
     }
 }
-
-
-    

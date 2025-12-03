@@ -26,7 +26,7 @@ AbstractBackgroundWidget {
     visibleWhenLocked: true
 
     property var textHorizontalAlignment: {
-        if (!Config.options.background.widgets.clock.digital.adaptiveAlignment || root.forceCenter) 
+        if (!Config.options.background.widgets.clock.digital.adaptiveAlignment || root.forceCenter)
             return Text.AlignHCenter;
         if (root.x < root.scaledScreenWidth / 3)
             return Text.AlignLeft;
@@ -63,7 +63,10 @@ AbstractBackgroundWidget {
             anchors.horizontalCenter: parent.horizontalCenter
             shown: root.clockStyle === "digital" && (root.shouldShow)
             fade: false
-            sourceComponent: DigitalClock {}
+            sourceComponent: DigitalClock {
+                textColor: root.colText
+                textAlignment: root.textHorizontalAlignment
+            }
         }
         StatusRow {
             anchors.horizontalCenter: parent.horizontalCenter
