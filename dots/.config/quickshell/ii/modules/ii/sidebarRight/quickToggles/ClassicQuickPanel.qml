@@ -35,10 +35,5 @@ AbstractQuickPanel {
         IdleInhibitor {}
         EasyEffectsToggle {}
         CloudflareWarp {}
-        VpnToggle {
-            altAction: () => {
-                root.openVpnDialog();
-            }
-        }
     }
 }

@@ -1,9 +1,6 @@
 # This script is meant to be sourced.
 # It's not for directly running.
 printf "${STY_CYAN}[$0]: 3. Copying config files\n${STY_RST}"
-if [[ "${INSTALL_DEV}" == "true" ]]; then
-  printf "${STY_YELLOW}--dev: Creating symlinks (ln -sfn) instead of copying files for quick updates.${STY_RST}\n"
-fi
 
 # shellcheck shell=bash
 
@@ -46,105 +43,29 @@ function gen_firstrun(){
   x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
   realpath -se "${FIRSTRUN_FILE}" >> "${INSTALLED_LISTFILE}"
 }
-
-# Helper to check if a path should be forced to copy (not symlink)
-should_force_copy() {
-  local path="$1"
-  # List of patterns that should ALWAYS be copied, never symlinked
-  # 1. monitors.conf: Hardware specific
-  # 2. workspaces.conf: Hardware specific
-  # 3. custom/: User customizations that shouldn't dirty the repo
-  # 4. .cache/: Cache files
-  if [[ "$path" == *"monitors.conf"* ]] || \
-     [[ "$path" == *"workspaces.conf"* ]] || \
-     [[ "$path" == *"/custom"* ]]; then
-    return 0 # True, should force copy
-  fi
-  return 1 # False
-}
-
 cp_file(){
   # NOTE: This function is only for using in other functions
   x mkdir -p "$(dirname $2)"
-  if [[ "${INSTALL_DEV}" == "true" ]] && ! should_force_copy "$1"; then
-    # In dev mode, create a symlink to the source in the repo instead of copying
-    local src="$(realpath -se "${REPO_ROOT}/$1")"
-    x rm -rf "$2"
-    x ln -sfn "$src" "$2"
-  else
-    if [[ "${INSTALL_DEV}" == "true" ]]; then
-      echo -e "${STY_BLUE}[DEV] Force copying '$1' instead of symlinking (hardware specific or custom).${STY_RST}"
-    fi
-    x cp -f "$1" "$2"
-  fi
+  x cp -f "$1" "$2"
   x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
   realpath -se "$2" >> "${INSTALLED_LISTFILE}"
 }
 rsync_dir(){
   # NOTE: This function is only for using in other functions
-  if [[ "${INSTALL_DEV}" == "true" ]] && ! should_force_copy "$1"; then
-    # Dev mode: symlink the whole directory for easy live updates
-    x mkdir -p "$(dirname $2)"
-    local src="$(realpath -se "${REPO_ROOT}/$1")"
-    x rm -rf "$2"
-    x ln -sfn "$src" "$2"
-    x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
-    realpath -se "$2" >> "${INSTALLED_LISTFILE}"
-  else
-    if [[ "${INSTALL_DEV}" == "true" ]]; then
-      echo -e "${STY_BLUE}[DEV] Force copying dir '$1' instead of symlinking.${STY_RST}"
-    fi
-    x mkdir -p "$2"
-    local dest="$(realpath -se $2)"
-    x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
-    rsync -a --out-format='%i %n' "$1"/ "$2"/ | awk -v d="$dest" '$1 ~ /^>/{ sub(/^[^ ]+ /,""); printf d "/" $0 "\n" }' >> "${INSTALLED_LISTFILE}"
-  fi
+  x mkdir -p "$2"
+  local dest="$(realpath -se $2)"
+  x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
+  rsync -a --out-format='%i %n' "$1"/ "$2"/ | awk -v d="$dest" '$1 ~ /^>/{ sub(/^[^ ]+ /,""); printf d "/" $0 "\n" }' >> "${INSTALLED_LISTFILE}"
 }
 rsync_dir__sync(){
   # NOTE: This function is only for using in other functions
   # `--delete' for rsync to make sure that
   # original dotfiles and new ones in the SAME DIRECTORY
   # (eg. in ~/.config/hypr) won't be mixed together
-  if [[ "${INSTALL_DEV}" == "true" ]] && ! should_force_copy "$1"; then
-    # Dev mode: symlink the whole directory for easy live updates
-    x mkdir -p "$(dirname $2)"
-    local src="$(realpath -se "${REPO_ROOT}/$1")"
-    x rm -rf "$2"
-    x ln -sfn "$src" "$2"
-    x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
-    realpath -se "$2" >> "${INSTALLED_LISTFILE}"
-  else
-    if [[ "${INSTALL_DEV}" == "true" ]]; then
-      echo -e "${STY_BLUE}[DEV] Force copying dir '$1' instead of symlinking.${STY_RST}"
-    fi
-    x mkdir -p "$2"
-    local dest="$(realpath -se $2)"
-    x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
-    rsync -a --delete --out-format='%i %n' "$1"/ "$2"/ | awk -v d="$dest" '$1 ~ /^>/{ sub(/^[^ ]+ /,""); printf d "/" $0 "\n" }' >> "${INSTALLED_LISTFILE}"
-  fi
-}
-rsync_dir__sync_exclude(){
-  # NOTE: This function is only for using in other functions
-  # $1: source
-  # $2: target
-  # $3: exclude pattern
-  if [[ "${INSTALL_DEV}" == "true" ]] && ! should_force_copy "$1"; then
-    # Dev mode: symlink the whole directory for easy live updates
-    x mkdir -p "$(dirname $2)"
-    local src="$(realpath -se "${REPO_ROOT}/$1")"
-    x rm -rf "$2"
-    x ln -sfn "$src" "$2"
-    x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
-    realpath -se "$2" >> "${INSTALLED_LISTFILE}"
-  else
-    if [[ "${INSTALL_DEV}" == "true" ]]; then
-      echo -e "${STY_BLUE}[DEV] Force copying dir '$1' instead of symlinking.${STY_RST}"
-    fi
-    x mkdir -p "$2"
-    local dest="$(realpath -se $2)"
-    x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
-    rsync -a --delete --exclude "$3" --out-format='%i %n' "$1"/ "$2"/ | awk -v d="$dest" '$1 ~ /^>/{ sub(/^[^ ]+ /,""); printf d "/" $0 "\n" }' >> "${INSTALLED_LISTFILE}"
-  fi
+  x mkdir -p "$2"
+  local dest="$(realpath -se $2)"
+  x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
+  rsync -a --delete --out-format='%i %n' "$1"/ "$2"/ | awk -v d="$dest" '$1 ~ /^>/{ sub(/^[^ ]+ /,""); printf d "/" $0 "\n" }' >> "${INSTALLED_LISTFILE}"
 }
 function install_file(){
   # NOTE: Do not add prefix `v` or `x` when using this function
@@ -214,10 +135,10 @@ function install_google_sans_flex(){
   x cd $src_dir
   try git init -b main
   try git remote add origin $src_url
-  x git pull origin main
+  x git pull origin main 
   x git submodule update --init --recursive
   warning_overwrite
-  rsync_dir "$src_dir" "$target_dir"
+  rsync_dir "$src_dir" "$target_dir" 
   x fc-cache -fv
   x cd $REPO_ROOT
   x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"

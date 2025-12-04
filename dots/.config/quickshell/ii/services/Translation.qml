@@ -81,7 +81,7 @@ Singleton {
         var key = text.toString();
         if (root.isLoading || (!root?.translations?.hasOwnProperty(key) && !root?.generatedTranslations?.hasOwnProperty(key)))
             return key;
-
+        
         // Normal cases
         var translation = root.translations[key] || root.generatedTranslations[key] || key;
         // print(key, "-> [", root.translations[key], root.generatedTranslations[key], key, "] ->", translation);
@@ -132,10 +132,6 @@ Singleton {
             var textContent = "";
             try {
                 textContent = text();
-                if (textContent.trim() === "") {
-                    translationReader.contentLoaded({});
-                    return;
-                }
                 var jsonData = JSON.parse(textContent);
                 translationReader.contentLoaded(jsonData);
             } catch (e) {

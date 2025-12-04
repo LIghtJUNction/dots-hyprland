@@ -106,10 +106,7 @@ Variants {
                 id: wallpaperSizeOutputCollector
                 onStreamFinished: {
                     const output = wallpaperSizeOutputCollector.text;
-                    if (!output) return;
                     const [width, height] = output.split(" ").map(Number);
-                    if (!width || !height) return;
-
                     const [screenWidth, screenHeight] = [bgRoot.screen.width, bgRoot.screen.height];
                     bgRoot.wallpaperWidth = width;
                     bgRoot.wallpaperHeight = height;
@@ -137,7 +134,7 @@ Variants {
                 cache: false
                 smooth: false
                 // Range = groups that workspaces span on
-                property int chunkSize: Config?.options?.bar?.workspaces?.shown || 10
+                property int chunkSize: Config?.options.bar.workspaces.shown ?? 10
                 property int lower: Math.floor(bgRoot.firstWorkspaceId / chunkSize) * chunkSize
                 property int upper: Math.ceil(bgRoot.lastWorkspaceId / chunkSize) * chunkSize
                 property int range: upper - lower

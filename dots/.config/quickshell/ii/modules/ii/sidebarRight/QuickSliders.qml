@@ -41,9 +41,9 @@ Rectangle {
             active: Config.options.sidebar.quickSliders.showBrightness
             sourceComponent: QuickSlider {
                 materialSymbol: "brightness_6"
-                value: root.brightnessMonitor?.brightness ?? 0
+                value: root.brightnessMonitor.brightness
                 onMoved: {
-                    root.brightnessMonitor?.setBrightness(value)
+                    root.brightnessMonitor.setBrightness(value)
                 }
             }
         }
@@ -57,9 +57,9 @@ Rectangle {
             active: Config.options.sidebar.quickSliders.showVolume
             sourceComponent: QuickSlider {
                 materialSymbol: "volume_up"
-                value: Audio.sink?.audio?.volume ?? 0
+                value: Audio.sink.audio.volume
                 onMoved: {
-                    if (Audio.sink?.audio) Audio.sink.audio.volume = value
+                    Audio.sink.audio.volume = value
                 }
             }
         }
@@ -73,20 +73,20 @@ Rectangle {
             active: Config.options.sidebar.quickSliders.showMic
             sourceComponent: QuickSlider {
                 materialSymbol: "mic"
-                value: Audio.source?.audio?.volume ?? 0
+                value: Audio.source.audio.volume
                 onMoved: {
-                    if (Audio.source?.audio) Audio.source.audio.volume = value
+                    Audio.source.audio.volume = value
                 }
             }
         }
     }
 
-    component QuickSlider: StyledSlider {
+    component QuickSlider: StyledSlider { 
         id: quickSlider
         required property string materialSymbol
         configuration: StyledSlider.Configuration.M
         stopIndicatorValues: []
-
+        
         MaterialSymbol {
             id: icon
             property bool nearFull: quickSlider.value >= 0.9
