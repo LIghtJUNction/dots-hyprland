@@ -18,11 +18,7 @@ remove_deprecated_dependencies(){
   list+=(illogical-impulse-{microtex,pymyc-aur})
   list+=(hyprland-qtutils)
   list+=({quickshell,hyprutils,hyprpicker,hyprlang,hypridle,hyprland-qt-support,hyprland-qtutils,hyprlock,xdg-desktop-portal-hyprland,hyprcursor,hyprwayland-scanner,hyprland}-git)
-  for i in ${list[@]}; do
-    if pacman -Qi $i &>/dev/null; then
-      try sudo pacman --noconfirm -Rdd $i
-    fi
-  done
+  for i in ${list[@]};do try sudo pacman --noconfirm -Rdd $i;done
 }
 # NOTE: `implicitize_old_dependencies()` was for the old days when we just switch from dependencies.conf to local PKGBUILDs.
 # However, let's just keep it as references for other distros writing their `sdata/dist-<OS_GROUP_ID>/install-deps.sh`, if they need it.
@@ -45,6 +41,11 @@ implicitize_old_dependencies(){
 if ! command -v pacman >/dev/null 2>&1; then
   printf "${STY_RED}[$0]: pacman not found, it seems that the system is not ArchLinux or Arch-based distros. Aborting...${STY_RST}\n"
   exit 1
+fi
+
+# Keep makepkg from resetting sudo credentials
+if [[ -z "${PACMAN_AUTH:-}" ]]; then
+  export PACMAN_AUTH="sudo"
 fi
 
 showfun remove_deprecated_dependencies
@@ -76,18 +77,6 @@ install-local-pkgbuild() {
   x pushd $location
 
   source ./PKGBUILD
-
-  # Check if package is already installed
-  if pacman -Qi "${pkgname}" &>/dev/null; then
-    local installed_ver=$(pacman -Q "${pkgname}" | awk '{print $2}')
-    local target_ver="${pkgver}-${pkgrel}"
-    if [[ "${installed_ver}" == "${target_ver}" ]]; then
-      echo -e "${STY_GREEN}Package ${pkgname} ${target_ver} is already installed. Skipping.${STY_RST}"
-      x popd
-      return
-    fi
-  fi
-
   x yay -S --sudoloop $installflags --asdeps "${depends[@]}"
   # man makepkg:
   # -A, --ignorearch: Ignore a missing or incomplete arch field in the build script.

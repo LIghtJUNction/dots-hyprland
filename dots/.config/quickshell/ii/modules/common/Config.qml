@@ -89,8 +89,6 @@ Singleton {
             }
 
             property JsonObject ai: JsonObject {
-                property bool autoSave: false
-                property int autoSaveResponses: 3
                 property string systemPrompt: "## Style\n- Use casual tone, don't be formal! Make sure you answer precisely without hallucination and prefer bullet points over walls of text. You can have a friendly greeting at the beginning of the conversation, but don't repeat the user's question\n\n## Context (ignore when irrelevant)\n- You are a helpful and inspiring sidebar assistant on a {DISTRO} Linux system\n- Desktop environment: {DE}\n- Current date & time: {DATETIME}\n- Focused app: {WINDOWCLASS}\n\n## Presentation\n- Use Markdown features in your response: \n  - **Bold** text to **highlight keywords** in your response\n  - **Split long information into small sections** with h2 headers and a relevant emoji at the start of it (for example `## 🐧 Linux`). Bullet points are preferred over long paragraphs, unless you're offering writing support or instructed otherwise by the user.\n- Asked to compare different options? You should firstly use a table to compare the main aspects, then elaborate or include relevant comments from online forums *after* the table. Make sure to provide a final recommendation for the user's use case!\n- Use LaTeX formatting for mathematical and scientific notations whenever appropriate. Enclose all LaTeX '$$' delimiters. NEVER generate LaTeX code in a latex block unless the user explicitly asks for it. DO NOT use LaTeX for regular documents (resumes, letters, essays, CVs, etc.).\n"
                 property string tool: "functions" // search, functions, or none
                 property list<var> extraModels: [
@@ -189,15 +187,7 @@ Singleton {
                             property bool useSineCookie: false
                         }
                         property JsonObject digital: JsonObject {
-                            property bool adaptiveAlignment: true
-                            property bool showDate: true
                             property bool animateChange: true
-                            property bool vertical: false
-                            property JsonObject font: JsonObject {
-                                property real weight: 350
-                                property real width: 100
-                                property real size: 90
-                            }
                         }
                         property JsonObject quote: JsonObject {
                             property bool enable: false
@@ -314,7 +304,7 @@ Singleton {
             }
 
             property JsonObject conflictKiller: JsonObject {
-                property bool autoKillNotificationDaemons: true
+                property bool autoKillNotificationDaemons: false
                 property bool autoKillTrays: false
             }
 
@@ -395,7 +385,6 @@ Singleton {
             }
 
             property JsonObject notifications: JsonObject {
-                property bool enable: true
                 property int timeout: 7000
             }
 
@@ -406,10 +395,6 @@ Singleton {
             property JsonObject osk: JsonObject {
                 property string layout: "qwerty_full"
                 property bool pinnedOnStartup: false
-            }
-
-            property JsonObject polkit: JsonObject {
-                property bool enable: false
             }
 
             property JsonObject overlay: JsonObject {
@@ -540,11 +525,6 @@ Singleton {
                 }
             }
 
-            property JsonObject randomWall: JsonObject {
-                property string savePath: Directories.pictures.replace("file://","") + "/Wallpapers"
-                property string saveName: "random-wallpaper" // keep original name when empty
-            }
-
             property JsonObject screenRecord: JsonObject {
                 property string savePath: Directories.videos.replace("file://","") // strip "file://"
             }
@@ -579,11 +559,11 @@ Singleton {
                 property int adviseUpdateThreshold: 75 // packages
                 property int stronglyAdviseUpdateThreshold: 200 // packages
             }
-
+            
             property JsonObject wallpaperSelector: JsonObject {
                 property bool useSystemFileDialog: false
             }
-
+            
             property JsonObject windows: JsonObject {
                 property bool showTitlebar: true // Client-side decoration for shell apps
                 property bool centerTitle: true
@@ -607,11 +587,12 @@ Singleton {
 
             property JsonObject waffles: JsonObject {
                 // Some spots are kinda janky/awkward. Setting the following to
-                // false will make (some) stuff also be like that for accuracy.
+                // false will make (some) stuff also be like that for accuracy. 
                 // Example: the right-click menu of the Start button
                 property JsonObject tweaks: JsonObject {
-                    property bool smootherMenuAnimations: true
                     property bool switchHandlePositionFix: true
+                    property bool smootherMenuAnimations: true
+                    property bool smootherSearchBar: true
                 }
                 property JsonObject bar: JsonObject {
                     property bool bottom: true

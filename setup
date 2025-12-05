@@ -10,23 +10,6 @@ source ./sdata/lib/dist-determine.sh
 prevent_sudo_or_root
 set -e
 
-init_sudo() {
-    if ! sudo -v; then
-        echo "Sudo access is required for installation."
-        exit 1
-    fi
-
-    # Keep sudo alive
-    (
-        set +e
-        while true; do
-            sudo -n true >/dev/null 2>&1
-            kill -0 "$$" >/dev/null 2>&1 || exit 0
-            sleep 60
-        done
-    ) &
-}
-
 #####################################################################################
 showhelp_global(){
 printf "${STY_CYAN}NOTE:
@@ -136,7 +119,6 @@ case ${SUBCMD_NAME} in
       $function
     done
     pause
-    init_sudo
     if [[ "${SKIP_ALLFILES}" != true ]]; then
       source ${SUBCMD_DIR}/3.files.sh
     fi
