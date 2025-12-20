@@ -486,6 +486,7 @@ Singleton {
                     property string emojis: ":"
                     property string math: "="
                     property string shellCommand: "$"
+                    property string symbols: "^"
                     property string webSearch: "?"
                 }
                 property JsonObject imageSearch: JsonObject {
