@@ -47,15 +47,15 @@ Variants {
             const sensitiveNetwork = (CF.StringUtils.stringListContainsSubstring(Network.networkName.toLowerCase(), Config.options.workSafety.triggerCondition.networkNameKeywords));
             return enabled && sensitiveWallpaper && sensitiveNetwork;
         }
-        readonly property real parallaxRation: 1.2
+        readonly property real parallaxRation: 1.1
         readonly property real additionalScaleFactor: Config.options.background.parallax.workspaceZoom
         property real effectiveWallpaperScale: 1 // Some reasonable init value, to be updated
         property int wallpaperWidth: modelData.width // Some reasonable init value, to be updated
         property int wallpaperHeight: modelData.height // Some reasonable init value, to be updated
         property real scaledWallpaperWidth: wallpaperWidth * effectiveWallpaperScale
         property real scaledWallpaperHeight: wallpaperHeight * effectiveWallpaperScale
-        property real parallaxTotalPixelsX: Math.max(screen.width - scaledWallpaperWidth, scaledWallpaperWidth - screen.width)
-        property real parallaxTotalPixelsY: Math.max(screen.height - scaledWallpaperHeight, scaledWallpaperHeight - screen.height)
+        property real parallaxTotalPixelsX: Math.max(0, scaledWallpaperWidth - screen.width)
+        property real parallaxTotalPixelsY: Math.max(0, scaledWallpaperHeight - screen.height)
         readonly property bool verticalParallax: (Config.options.background.parallax.autoVertical && wallpaperHeight > wallpaperWidth) || Config.options.background.parallax.vertical
         // Colors
         property bool shouldBlur: (GlobalStates.screenLocked && Config.options.lock.blur.enable)
@@ -150,7 +150,7 @@ Variants {
                 x: {
                     if (bgRoot.screen.width > bgRoot.scaledWallpaperWidth) {
                         // Center the picture
-                        return bgRoot.parallaxTotalPixelsX / 2;
+                        return (bgRoot.screen.width - bgRoot.scaledWallpaperWidth) / 2;
                     }
 
                     let usedFraction = middleFraction;
@@ -167,7 +167,7 @@ Variants {
                 y: {
                     if (bgRoot.screen.height > bgRoot.scaledWallpaperHeight) {
                         // Center the picture
-                        return bgRoot.parallaxTotalPixelsY / 2;
+                        return (bgRoot.screen.height - bgRoot.scaledWallpaperHeight) / 2;
                     }
 
                     let usedFraction = middleFraction;
@@ -229,19 +229,13 @@ Variants {
             WidgetCanvas {
                 id: widgetCanvas
                 anchors {
-                    left: bgRoot.screen.left
-                    right: bgRoot.screen.right
-                    top: bgRoot.screen.top
-                    bottom: bgRoot.screen.bottom
+                    left: wallpaper.left
+                    right: wallpaper.right
+                    top: wallpaper.top
+                    bottom: wallpaper.bottom
                     horizontalCenter: undefined
                     verticalCenter: undefined
                     readonly property real parallaxFactor: Config.options.background.parallax.widgetsFactor
-                    leftMargin: {
-                        return bgRoot.screen.width * 0.2;
-                    }
-                    topMargin: {
-                        return bgRoot.screen.height * 0.2;
-                    }
                     Behavior on leftMargin {
                         animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
                     }
