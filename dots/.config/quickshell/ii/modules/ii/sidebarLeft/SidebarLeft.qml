@@ -22,28 +22,28 @@ Scope { // Scope
     Process { // Dodge cursor away, pin, move cursor back
         id: pinWithFunnyHyprlandWorkaroundProc
         property var hook: null
-        property int cursorX;
-        property int cursorY;
+        property int cursorX
+        property int cursorY
         function doIt() {
-            command = ["hyprctl", "cursorpos"]
-            hook = (output) => {
+            command = ["hyprctl", "cursorpos"];
+            hook = output => {
                 cursorX = parseInt(output.split(",")[0]);
                 cursorY = parseInt(output.split(",")[1]);
                 doIt2();
-            }
+            };
             running = true;
         }
         function doIt2(output) {
             command = ["bash", "-c", "hyprctl dispatch movecursor 9999 9999"];
             hook = () => {
                 doIt3();
-            }
+            };
             running = true;
         }
         function doIt3(output) {
             root.pin = !root.pin;
             command = ["bash", "-c", `sleep 0.01; hyprctl dispatch movecursor ${cursorX} ${cursorY}`];
-            hook = null
+            hook = null;
             running = true;
         }
         stdout: StdioCollector {
@@ -54,13 +54,15 @@ Scope { // Scope
     }
 
     function togglePin() {
-        if (!root.pin) pinWithFunnyHyprlandWorkaroundProc.doIt()
-        else root.pin = !root.pin;
+        if (!root.pin)
+            pinWithFunnyHyprlandWorkaroundProc.doIt();
+        else
+            root.pin = !root.pin;
     }
 
     Component.onCompleted: {
         root.sidebarContent = contentComponent.createObject(null, {
-            "scopeRoot": root,
+            "scopeRoot": root
         });
         sidebarLoader.item.contentParent.children = [root.sidebarContent];
     }
@@ -82,34 +84,22 @@ Scope { // Scope
     Loader {
         id: sidebarLoader
         active: true
-        
+
         sourceComponent: PanelWindow { // Window
-            id: sidebarRoot
+            id: panelWindow
             visible: GlobalStates.sidebarLeftOpen
-            
-            property bool extend: {  
-                const aiEnabled = Config.options.policies.ai !== 0;  
-                const weebEnabled = Config.options.policies.weeb !== 0;  
-                const wallpaperEnabled = Config.options.policies.wallpaperBrowser !== 0;  
-                  
-                // Count enabled tabs  
-                let enabledCount = 0;  
-                if (aiEnabled) enabledCount++;  
-                if (weebEnabled) enabledCount++;  
-                if (wallpaperEnabled) enabledCount++;  
-                  
-                // Extend if all three are enabled  
-                return enabledCount === 3;  
-            }            property real sidebarWidth: sidebarRoot.extend ? Appearance.sizes.sidebarLeftWidthExtended : Appearance.sizes.sidebarWidth
+
+            property bool extend: false
+            property real sidebarWidth: panelWindow.extend ? Appearance.sizes.sidebarWidthExtended : Appearance.sizes.sidebarWidth
             property var contentParent: sidebarLeftBackground
 
             function hide() {
-                GlobalStates.sidebarLeftOpen = false
+                GlobalStates.sidebarLeftOpen = false;
             }
 
             exclusionMode: ExclusionMode.Normal
             exclusiveZone: root.pin ? sidebarWidth : 0
-            implicitWidth: Appearance.sizes.sidebarWidthExtended + Appearance.sizes.elevationMargin
+            implicitWidth: Appearance.sizes.sidebarLeftWidthExtended + Appearance.sizes.elevationMargin
             WlrLayershell.namespace: "quickshell:sidebarLeft"
             // Hyprland 0.49: OnDemand is Exclusive, Exclusive just breaks click-outside-to-close
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
@@ -125,15 +115,17 @@ Scope { // Scope
                 item: sidebarLeftBackground
             }
 
-            HyprlandFocusGrab { // Click outside to close
-                id: grab
-                windows: [ sidebarRoot ]
-                active: sidebarRoot.visible && !root.pin
-                onActiveChanged: { // Focus the selected tab
-                    if (active) sidebarLeftBackground.children[0].focusActiveItem()
+            onVisibleChanged: {
+                if (visible) {
+                    GlobalFocusGrab.addDismissable(panelWindow);
+                } else {
+                    GlobalFocusGrab.removeDismissable(panelWindow);
                 }
-                onCleared: () => {
-                    if (!active) sidebarRoot.hide()
+            }
+            Connections {
+                target: GlobalFocusGrab
+                function onDismissed() {
+                    panelWindow.hide();
                 }
             }
 
@@ -148,7 +140,7 @@ Scope { // Scope
                 anchors.left: parent.left
                 anchors.topMargin: Appearance.sizes.hyprlandGapsOut
                 anchors.leftMargin: Appearance.sizes.hyprlandGapsOut
-                width: sidebarRoot.sidebarWidth - Appearance.sizes.hyprlandGapsOut - Appearance.sizes.elevationMargin
+                width: panelWindow.sidebarWidth - Appearance.sizes.hyprlandGapsOut - Appearance.sizes.elevationMargin
                 height: parent.height - Appearance.sizes.hyprlandGapsOut * 2
                 color: Appearance.colors.colLayer0
                 border.width: 1
@@ -159,13 +151,13 @@ Scope { // Scope
                     animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
                 }
 
-                Keys.onPressed: (event) => {
+                Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape) {
-                        sidebarRoot.hide();
+                        panelWindow.hide();
                     }
                     if (event.modifiers === Qt.ControlModifier) {
                         if (event.key === Qt.Key_O) {
-                            sidebarRoot.extend = !sidebarRoot.extend;
+                            panelWindow.extend = !panelWindow.extend;
                         } else if (event.key === Qt.Key_D) {
                             root.toggleDetach();
                         } else if (event.key === Qt.Key_P) {
@@ -189,15 +181,16 @@ Scope { // Scope
 
             visible: GlobalStates.sidebarLeftOpen
             onVisibleChanged: {
-                if (!visible) GlobalStates.sidebarLeftOpen = false;
+                if (!visible)
+                    GlobalStates.sidebarLeftOpen = false;
             }
-            
+
             Rectangle {
                 id: detachedSidebarBackground
                 anchors.fill: parent
                 color: Appearance.colors.colLayer0
 
-                Keys.onPressed: (event) => {
+                Keys.onPressed: event => {
                     if (event.modifiers === Qt.ControlModifier) {
                         if (event.key === Qt.Key_D) {
                             root.toggleDetach();
@@ -213,15 +206,15 @@ Scope { // Scope
         target: "sidebarLeft"
 
         function toggle(): void {
-            GlobalStates.sidebarLeftOpen = !GlobalStates.sidebarLeftOpen
+            GlobalStates.sidebarLeftOpen = !GlobalStates.sidebarLeftOpen;
         }
 
         function close(): void {
-            GlobalStates.sidebarLeftOpen = false
+            GlobalStates.sidebarLeftOpen = false;
         }
 
         function open(): void {
-            GlobalStates.sidebarLeftOpen = true
+            GlobalStates.sidebarLeftOpen = true;
         }
     }
 
@@ -260,5 +253,4 @@ Scope { // Scope
             root.detach = !root.detach;
         }
     }
-
 }

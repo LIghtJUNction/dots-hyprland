@@ -38,6 +38,7 @@ ColumnLayout {
     // Minutes (only when vertical)
     Loader {
         Layout.topMargin: -40
+        Layout.fillWidth: true
         active: clockColumn.isVertical
         visible: active
         sourceComponent: ClockText {
@@ -58,6 +59,7 @@ ColumnLayout {
     ClockText {
         visible: Config.options.background.widgets.clock.digital.showDate
         Layout.topMargin: -20
+        Layout.fillWidth: true
         text: DateTime.longDate
         color: clockColumn.colText
         horizontalAlignment: clockColumn.textHorizontalAlignment

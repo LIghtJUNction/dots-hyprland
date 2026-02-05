@@ -189,7 +189,6 @@ ContentPage {
                     }
                 }
             }
-        }
 
             ConfigRow {
                 uniform: true
@@ -248,7 +247,6 @@ ContentPage {
                 stopIndicatorValues: [90]
                 onValueChanged: {
                     Config.options.background.widgets.clock.digital.font.size = value;
->>>>>>> 0027e8a6e35ad0cc8287b1162aca61c46d042efa
                 }
             }
 
