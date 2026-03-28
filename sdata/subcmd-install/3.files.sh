@@ -46,6 +46,10 @@ function gen_firstrun(){
 cp_file(){
   # NOTE: This function is only for using in other functions
   x mkdir -p "$(dirname $2)"
+  # If destination is a symlink pointing to source, remove it first to avoid "same file" error
+  if [ -L "$2" ] && [ "$(realpath "$2")" = "$(realpath "$1")" ]; then
+    rm -f "$2"
+  fi
   x cp -f "$1" "$2"
   x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
   realpath -se "$2" >> "${INSTALLED_LISTFILE}"
