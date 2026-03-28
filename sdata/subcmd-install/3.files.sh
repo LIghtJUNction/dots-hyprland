@@ -66,17 +66,11 @@ should_force_copy() {
 cp_file(){
   # NOTE: This function is only for using in other functions
   x mkdir -p "$(dirname $2)"
-  if [[ "${INSTALL_DEV}" == "true" ]] && ! should_force_copy "$1"; then
-    # In dev mode, create a symlink to the source in the repo instead of copying
-    local src="$(realpath -se "${REPO_ROOT}/$1")"
-    x rm -rf "$2"
-    x ln -sfn "$src" "$2"
-  else
-    if [[ "${INSTALL_DEV}" == "true" ]]; then
-      echo -e "${STY_BLUE}[DEV] Force copying '$1' instead of symlinking (hardware specific or custom).${STY_RST}"
-    fi
-    x cp -f "$1" "$2"
+  # If destination is a symlink pointing to source, remove it first to avoid "same file" error
+  if [ -L "$2" ] && [ "$(realpath "$2")" = "$(realpath "$1")" ]; then
+    rm -f "$2"
   fi
+  x cp -f "$1" "$2"
   x mkdir -p "$(dirname ${INSTALLED_LISTFILE})"
   realpath -se "$2" >> "${INSTALLED_LISTFILE}"
 }
