@@ -37,7 +37,8 @@ Variants {
         property list<var> relevantWindows: HyprlandData.windowList.filter(win => win.monitor == monitor?.id && win.workspace.id >= 0).sort((a, b) => a.workspace.id - b.workspace.id)
         property int firstWorkspaceId: relevantWindows[0]?.workspace.id || 1
         property int lastWorkspaceId: relevantWindows[relevantWindows.length - 1]?.workspace.id || 10
-        property int totalWorkspaces: Config?.options.bar.workspaces.shown ?? 10
+        property int workspaceChunkSize: Config?.options.bar.workspaces.shown ?? 10
+        property int totalWorkspaces: Math.ceil(lastWorkspaceId / workspaceChunkSize) * workspaceChunkSize
         // Wallpaper
         property bool wallpaperIsVideo: Config.options.background.wallpaperPath.endsWith(".mp4") || Config.options.background.wallpaperPath.endsWith(".webm") || Config.options.background.wallpaperPath.endsWith(".mkv") || Config.options.background.wallpaperPath.endsWith(".avi") || Config.options.background.wallpaperPath.endsWith(".mov")
         property string wallpaperPath: wallpaperIsVideo ? Config.options.background.thumbnailPath : Config.options.background.wallpaperPath
@@ -126,7 +127,6 @@ Variants {
 
         Item {
             anchors.fill: parent
-            clip: true
 
             // Wallpaper
             StyledImage {
@@ -147,35 +147,38 @@ Variants {
                     return Math.max(0, Math.min(1, workspaceIndex / (bgRoot.totalWorkspaces - 1)));
                 }
 
-                x: {
-                    if (bgRoot.screen.width > bgRoot.scaledWallpaperWidth) {
-                        // Center the picture
-                        return (bgRoot.screen.width - bgRoot.scaledWallpaperWidth) / 2;
-                    }
-
+                property real usedFractionX: {
                     let usedFraction = middleFraction;
                     if (Config.options.background.parallax.enableWorkspace && !bgRoot.verticalParallax) {
                         usedFraction = fraction;
                     }
                     if (Config.options.background.parallax.enableSidebar) {
-                        let sidebarFraction = bgRoot.parallaxRation / 10;
+                        let sidebarFraction = bgRoot.parallaxRation / bgRoot.workspaceChunkSize / 2;
                         usedFraction += (sidebarFraction * GlobalStates.sidebarRightOpen - sidebarFraction * GlobalStates.sidebarLeftOpen);
                     }
-                    usedFraction = Math.max(0, Math.min(1, usedFraction));
-                    return - bgRoot.parallaxTotalPixelsX * usedFraction;
+                    return Math.max(0, Math.min(1, usedFraction));
+                }
+                property real usedFractionY: {
+                    let usedFraction = middleFraction;
+                    if (Config.options.background.parallax.enableWorkspace && bgRoot.verticalParallax) {
+                        usedFraction = fraction;
+                    }
+                    return Math.max(0, Math.min(1, usedFraction));
+                }
+
+                x: {
+                    if (bgRoot.screen.width > bgRoot.scaledWallpaperWidth) {
+                        // Center the picture
+                        return (bgRoot.screen.width - bgRoot.scaledWallpaperWidth) / 2;
+                    }
+                    return - bgRoot.parallaxTotalPixelsX * usedFractionX;
                 }
                 y: {
                     if (bgRoot.screen.height > bgRoot.scaledWallpaperHeight) {
                         // Center the picture
                         return (bgRoot.screen.height - bgRoot.scaledWallpaperHeight) / 2;
                     }
-
-                    let usedFraction = middleFraction;
-                    if (Config.options.background.parallax.enableWorkspace && bgRoot.verticalParallax) {
-                        usedFraction = fraction;
-                    }
-                    usedFraction = Math.max(0, Math.min(1, usedFraction));
-                    return - bgRoot.parallaxTotalPixelsY * usedFraction;
+                    return - bgRoot.parallaxTotalPixelsY * usedFractionY;
                 }
 
                 source: bgRoot.wallpaperSafetyTriggered ? "" : bgRoot.wallpaperPath
@@ -228,43 +231,20 @@ Variants {
 
             WidgetCanvas {
                 id: widgetCanvas
-                anchors {
-                    left: wallpaper.left
-                    right: wallpaper.right
-                    top: wallpaper.top
-                    bottom: wallpaper.bottom
-                    horizontalCenter: undefined
-                    verticalCenter: undefined
-                    readonly property real parallaxFactor: Config.options.background.parallax.widgetsFactor
-                    Behavior on leftMargin {
-                        animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
-                    }
-                    Behavior on topMargin {
-                        animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
-                    }
+                width: parent.width
+                height: parent.height
+                readonly property real parallaxFactor: {
+                    var f = Config.options.background.parallax.widgetsFactor;
+                    return f / Config.options.background.parallax.workspaceZoom;
                 }
-                width: wallpaper.width
-                height: wallpaper.height
-                states: State {
-                    name: "centered"
-                    when: GlobalStates.screenLocked || bgRoot.wallpaperSafetyTriggered
-                    PropertyChanges {
-                        target: widgetCanvas
-                        width: parent.width
-                        height: parent.height
-                    }
-                    AnchorChanges {
-                        target: widgetCanvas
-                        anchors {
-                            left: undefined
-                            right: undefined
-                            top: undefined
-                            bottom: undefined
-                            horizontalCenter: parent.horizontalCenter
-                            verticalCenter: parent.verticalCenter
-                        }
-                    }
-                }
+                readonly property real baseWallpaperOffsetX: (bgRoot.screen.width - bgRoot.scaledWallpaperWidth) / 2
+                readonly property real baseWallpaperOffsetY: (bgRoot.screen.height - bgRoot.scaledWallpaperHeight) / 2
+                readonly property real wallpaperTotalOffsetX: wallpaper.x - baseWallpaperOffsetX
+                readonly property real wallpaperTotalOffsetY: wallpaper.y - baseWallpaperOffsetY
+                readonly property bool locked: GlobalStates.screenLocked
+                x: wallpaperTotalOffsetX * parallaxFactor * !locked
+                y: wallpaperTotalOffsetY * parallaxFactor * !locked
+
                 transitions: Transition {
                     PropertyAnimation {
                         properties: "width,height"
