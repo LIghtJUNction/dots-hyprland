@@ -40,6 +40,7 @@
   <summary>Installation</summary>
 
    - _If you're new to Linux and decide to use Hyprland, you're in for a tough ride._
+   - **AUR users**: `paru -S dots-hyprlands-fork-git`
    - Just run `bash <(curl -s https://ii.clsty.link/get)`
      - Or, clone this repo and run `./setup install`
      - See [the wiki](https://ii.clsty.link/en/ii-qs/01setup/) for more details
