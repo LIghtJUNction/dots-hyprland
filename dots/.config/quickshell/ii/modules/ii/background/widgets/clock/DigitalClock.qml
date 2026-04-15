@@ -9,28 +9,26 @@ ColumnLayout {
     id: clockColumn
     spacing: 4
 
+    // Whether the clock is stacked vertically (hour on top, minute below)
     property bool isVertical: Config.options.background.widgets.clock.digital.vertical
-    property color textColor: Appearance.colors.colOnSurface
-    property int textAlignment: Text.AlignHCenter
+    // Text color. Parent (ClockWidget) can override by passing `colText`.
+    property color colText: Appearance.colors.colOnSecondaryContainer
+    // Horizontal alignment for date/quote/time (can be passed in)
+    property var textHorizontalAlignment: Text.AlignHCenter
 
-    Item {
-        Layout.fillWidth: true
-        implicitHeight: timeTextTop.font.pixelSize + (clockColumn.isVertical ? timeTextBottom.font.pixelSize + 10 : 0)
-        implicitWidth: Math.max(timeTextTop.paintedWidth, timeTextBottom.paintedWidth)
+    // Time (top)
+    ClockText {
+        id: timeTextTop
+        // When vertical, show only the hour portion.
+        text: clockColumn.isVertical ? DateTime.time.split(":")[0].padStart(2, "0") : DateTime.time
+        color: clockColumn.colText
+        horizontalAlignment: clockColumn.textHorizontalAlignment
 
-        ClockText {
-            id: timeTextTop
-            color: clockColumn.textColor
-            horizontalAlignment: clockColumn.textAlignment
-            text: clockColumn.isVertical ? DateTime.time.substring(0, 2) : DateTime.time
-            anchors {
-                top: parent.top
-                horizontalCenter: parent.horizontalCenter
-            }
-            font {
-                pixelSize: Config.options.background.widgets.clock.digital.font.size
-                weight: Config.options.background.widgets.clock.digital.font.weight
-                variableAxes: ({
+        font {
+            pixelSize: Config.options.background.widgets.clock.digital.font.size
+            weight: Config.options.background.widgets.clock.digital.font.weight
+            family: Config.options.background.widgets.clock.digital.font.family
+            variableAxes: ({
                     "wdth": Config.options.background.widgets.clock.digital.font.width,
                     "ROND": Config.options.background.widgets.clock.digital.font.roundness
                 })
@@ -42,6 +40,7 @@ ColumnLayout {
             text: clockColumn.isVertical ? DateTime.time.substring(3, 5) : ""
             visible: clockColumn.isVertical
 
+    // Minutes (only when vertical)
     Loader {
         Layout.topMargin: -40
         Layout.fillWidth: true
@@ -72,7 +71,7 @@ ColumnLayout {
         horizontalAlignment: clockColumn.textHorizontalAlignment
     }
 
-    // Quote
+    // Quote (optional)
     ClockText {
         color: clockColumn.textColor
         horizontalAlignment: clockColumn.textAlignment

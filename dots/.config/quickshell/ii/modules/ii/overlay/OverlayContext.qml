@@ -13,7 +13,8 @@ Singleton {
         "recorder": "screen_record",
         "resources": "browse_activity",
         "notes": "note_stack",
-        "volumeMixer": "volume_up"
+        "volumeMixer": "volume_up",
+        "catwalk": "pets"
     }
 
     readonly property list<var> availableWidgets: {

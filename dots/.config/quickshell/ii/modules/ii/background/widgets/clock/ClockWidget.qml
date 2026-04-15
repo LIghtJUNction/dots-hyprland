@@ -28,7 +28,7 @@ AbstractBackgroundWidget {
     visibleWhenLocked: true
 
     property var textHorizontalAlignment: {
-        if (!Config.options.background.widgets.clock.digital.adaptiveAlignment || root.forceCenter)
+        if (!Config.options.background.widgets.clock.digital.adaptiveAlignment || root.forceCenter || Config.options.background.widgets.clock.digital.vertical)
             return Text.AlignHCenter;
         if (root.x < root.scaledScreenWidth / 3)
             return Text.AlignLeft;
@@ -130,6 +130,9 @@ AbstractBackgroundWidget {
         }
     }
 
+    // ClockText component moved to
+    // dots/.config/quickshell/ii/modules/ii/background/widgets/clock/ClockText.qml
+    // to avoid duplication and make the component reusable across files.
     component ClockStatusText: Row {
         id: statusTextRow
         property alias statusIcon: statusIconWidget.text

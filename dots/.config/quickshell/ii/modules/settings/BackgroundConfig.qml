@@ -120,52 +120,48 @@ ContentPage {
             }
         }
 
-        ConfigRow {
-            ContentSubsection {
-                visible: !Config.options.background.widgets.clock.showOnlyWhenLocked
-                title: Translation.tr("Clock style")
-                Layout.fillWidth: true
-                ConfigSelectionArray {
-                    currentValue: Config.options.background.widgets.clock.style
-                    onSelected: newValue => {
-                        Config.options.background.widgets.clock.style = newValue;
-                    }
-                    options: [
-                        {
-                            displayName: Translation.tr("Digital"),
-                            icon: "timer_10",
-                            value: "digital"
-                        },
-                        {
-                            displayName: Translation.tr("Cookie"),
-                            icon: "cookie",
-                            value: "cookie"
-                        }
-                    ]
+        ContentSubsection {
+            visible: !Config.options.background.widgets.clock.showOnlyWhenLocked
+            title: Translation.tr("Clock style")
+            ConfigSelectionArray {
+                currentValue: Config.options.background.widgets.clock.style
+                onSelected: newValue => {
+                    Config.options.background.widgets.clock.style = newValue;
                 }
+                options: [
+                    {
+                        displayName: Translation.tr("Digital"),
+                        icon: "timer_10",
+                        value: "digital"
+                    },
+                    {
+                        displayName: Translation.tr("Cookie"),
+                        icon: "cookie",
+                        value: "cookie"
+                    }
+                ]
             }
+        }
 
-            ContentSubsection {
-                title: Translation.tr("Clock style (locked)")
-                Layout.fillWidth: false
-                ConfigSelectionArray {
-                    currentValue: Config.options.background.widgets.clock.styleLocked
-                    onSelected: newValue => {
-                        Config.options.background.widgets.clock.styleLocked = newValue;
-                    }
-                    options: [
-                        {
-                            displayName: Translation.tr("Digital"),
-                            icon: "timer_10",
-                            value: "digital"
-                        },
-                        {
-                            displayName: Translation.tr("Cookie"),
-                            icon: "cookie",
-                            value: "cookie"
-                        }
-                    ]
+        ContentSubsection {
+            title: Translation.tr("Clock style (locked)")
+            ConfigSelectionArray {
+                currentValue: Config.options.background.widgets.clock.styleLocked
+                onSelected: newValue => {
+                    Config.options.background.widgets.clock.styleLocked = newValue;
                 }
+                options: [
+                    {
+                        displayName: Translation.tr("Digital"),
+                        icon: "timer_10",
+                        value: "digital"
+                    },
+                    {
+                        displayName: Translation.tr("Cookie"),
+                        icon: "cookie",
+                        value: "cookie"
+                    }
+                ]
             }
         }
 
